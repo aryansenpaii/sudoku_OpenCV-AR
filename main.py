@@ -13,7 +13,7 @@ input_size=48
 #Read Image
 img=cv2.imread('sudoku1.jpg')
 cv2.imshow("Input Image: ",img)
-cv2.waitKey(0)
+
 
 def find_board(img):
     """Takes an image as input and finds sudoku board inside it"""
@@ -136,17 +136,25 @@ try:
     solved_board_nums = get_board(board_num)
     binArr= np.where(np.array(predicted_numbers)>0,0,1)
     print(binArr)
+
     #get only solved numbers for the solved board
     flat_solved_board_nums=solved_board_nums.flatten()*binArr
+
     #create a mask
     mask=np.zeros_like(board)
+
     solved_board_mask = displayNumbers(mask, flat_solved_board_nums)
-    cv2.imshow("Solved mask", solved_board_mask)
+    # cv2.imshow("Solved mask", solved_board_mask)
+
     # Get Inverse Perspective
     inv = get_InvPerspective(img, solved_board_mask, location)
     # cv2.imshow("mask with original image perspective",inv)
 
-
+    #---FINALLY COMBINE THE MASK WITH ORIGINAL IMAGE TO DISPLAY THE ANSWER
+    combined= cv2.addWeighted(img, 0.7,inv,1,0)
+    cv2.destroyAllWindows()
+    cv2.imshow("Final Result", combined)
+    cv2.waitKey(0)
 except:
     print("Solution doesn't exist. Model misread the digits")
 
