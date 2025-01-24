@@ -78,6 +78,10 @@ classes = np.arange(0,10)
 model=load_model("model-OCR.h5") #OCR prediction model
 
 #get prediction
+"""there will be 81 predictions in total with each containing array of size 10 
+containing predictions for 0-9 digits, the prediction that has higher value will be the 
+digit we predicted from rois(region of interest) i.e  the model suggests that that character
+is highly probable from the image we fed it!"""
 prediction= model.predict(rois)
 # print(prediction)
 
@@ -87,6 +91,62 @@ for i in prediction:
     index=(np.argmax(i))
     predicted_number=classes[index]
     predicted_numbers.append(predicted_number)
-print(predicted_numbers)
+# print(predicted_numbers)
 
+#reshape the list
+board_num= np.array(predicted_numbers).astype('uint8').reshape(9,9)
+# print(board_num)
+
+
+
+
+def displayNumbers(img, numbers, color=(0,255,0)):
+    """Text Content:
+        str(numbers[(j * 9) + i]): Converts the number to a string for display.
+       Position:
+            i * W + int(W / 2): Centers the text horizontally within the cell.
+            - int(W / 4): Adjusts the text slightly to the left for better alignment.
+            int((j + 0.7) * H): Positions the text vertically within the cell, slightly below the middle.
+       Font and Appearance:
+            cv2.FONT_HERSHEY_COMPLEX: Specifies the font style.
+            2: Font scale (size of the text).
+            color: Text color.
+            2: Thickness of the text.
+            cv2.LINE_AA: Anti-aliasing for smoother text edges."""
+    W=int(img.shape[1]/9)
+    H= int(img.shape[0]/9)
+    for i in range(9):
+        for j in range(9):
+            if(numbers[(j*9)+i] != 0):
+                cv2.putText(img,str(numbers[(j*9)+i]), (i*W+int(W/2)-int((W/4)),int((j+0.7)*H)), cv2.FONT_HERSHEY_COMPLEX,2 , color,2,cv2.LINE_AA)
+    return img
+
+def get_InvPerspective(img, masked_num, location, height=900, width=900):
+    """takes original image as input"""
+    pts1=np.float32([[0,0], [width,0],[0,height],[width, height]])
+    pts2= np.float32([location[0], location[3], location[1], location[2]])
+
+    #Apply Perspective Transform Algorithm
+    matrix=cv2.getPerspectiveTransform(pts1,pts2)
+    #put the transformed image back into the original image
+    result= cv2.warpPerspective(masked_num,matrix,(img.shape[1],img.shape[0]))
+    return result
+
+try:
+    solved_board_nums = get_board(board_num)
+    binArr= np.where(np.array(predicted_numbers)>0,0,1)
+    print(binArr)
+    #get only solved numbers for the solved board
+    flat_solved_board_nums=solved_board_nums.flatten()*binArr
+    #create a mask
+    mask=np.zeros_like(board)
+    solved_board_mask = displayNumbers(mask, flat_solved_board_nums)
+    cv2.imshow("Solved mask", solved_board_mask)
+    # Get Inverse Perspective
+    inv = get_InvPerspective(img, solved_board_mask, location)
+    # cv2.imshow("mask with original image perspective",inv)
+
+
+except:
+    print("Solution doesn't exist. Model misread the digits")
 
